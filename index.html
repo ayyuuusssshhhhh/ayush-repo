@@ -3,13 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+  <title>Ayush's Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    @keyframes rainbowBG {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes rainbowText {
+      0%   { color: #ff0000; }
+      14%  { color: #ff7700; }
+      28%  { color: #ffff00; }
+      42%  { color: #00cc00; }
+      57%  { color: #0099ff; }
+      71%  { color: #6600ff; }
+      85%  { color: #ff00cc; }
+      100% { color: #ff0000; }
+    }
+
+    @keyframes borderRainbow {
+      0%   { border-color: #ff0000; }
+      16%  { border-color: #ff7700; }
+      33%  { border-color: #ffff00; }
+      50%  { border-color: #00cc00; }
+      66%  { border-color: #0099ff; }
+      83%  { border-color: #6600ff; }
+      100% { border-color: #ff0000; }
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background: linear-gradient(270deg, #ff0000, #ff7700, #ffff00, #00cc00, #0099ff, #6600ff, #ff00cc, #ff0000);
+      background-size: 400% 400%;
+      animation: rainbowBG 8s ease infinite;
       min-height: 100vh;
       color: #fff;
     }
@@ -19,17 +48,23 @@
       align-items: center;
       justify-content: space-between;
       padding: 20px 40px;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
     }
 
-    header h1 { font-size: 1.4rem; letter-spacing: 1px; color: #a78bfa; }
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      animation: rainbowText 3s linear infinite;
+    }
 
     .avatar {
       width: 42px; height: 42px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      background: rgba(0,0,0,0.4);
+      border: 2px solid #fff;
       display: flex; align-items: center; justify-content: center;
       font-weight: 700; font-size: 1rem;
     }
@@ -43,13 +78,15 @@
       font-size: clamp(2.5rem, 6vw, 4.5rem);
       font-weight: 900;
       color: #fff;
-      text-shadow: 0 0 30px rgba(167, 139, 250, 0.6);
+      text-shadow: 2px 2px 12px rgba(0,0,0,0.5);
       margin-bottom: 12px;
     }
 
     .subtitle {
-      font-size: 1.1rem;
-      color: rgba(255,255,255,0.55);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 1px 1px 6px rgba(0,0,0,0.5);
       margin-bottom: 60px;
     }
 
@@ -63,16 +100,18 @@
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.35);
+      border: 2px solid rgba(255, 255, 255, 0.4);
       border-radius: 16px;
       padding: 28px 24px;
+      backdrop-filter: blur(8px);
       transition: transform 0.2s, box-shadow 0.2s;
+      animation: borderRainbow 3s linear infinite;
     }
 
     .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(167, 139, 250, 0.2);
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
     }
 
     .card-icon { font-size: 2rem; margin-bottom: 14px; }
@@ -81,7 +120,7 @@
       font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      color: rgba(255,255,255,0.45);
+      color: rgba(255,255,255,0.7);
       margin-bottom: 6px;
     }
 
@@ -89,41 +128,46 @@
       font-size: 2rem;
       font-weight: 700;
       color: #fff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
 
     .card-delta {
       font-size: 0.85rem;
-      color: #34d399;
+      color: #ccffcc;
       margin-top: 6px;
+      font-weight: 600;
     }
 
     .clock {
       text-align: center;
       font-size: 0.95rem;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.85);
+      font-weight: 600;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
       padding-bottom: 24px;
     }
 
     .reminder-banner {
       max-width: 480px;
       margin: 0 auto 60px;
-      background: linear-gradient(135deg, rgba(167,139,250,0.18), rgba(96,165,250,0.18));
-      border: 1px solid rgba(167,139,250,0.45);
+      background: rgba(0,0,0,0.4);
+      border: 2px solid rgba(255,255,255,0.5);
       border-radius: 14px;
       padding: 18px 28px;
       text-align: center;
       font-size: 1.1rem;
-      font-weight: 600;
-      color: #c4b5fd;
+      font-weight: 700;
+      color: #fff;
       letter-spacing: 0.3px;
-      box-shadow: 0 0 24px rgba(167,139,250,0.15);
+      text-shadow: 1px 1px 6px rgba(0,0,0,0.4);
+      animation: borderRainbow 3s linear infinite;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>My Dashboard</h1>
+    <h1>Ayush's Dashboard</h1>
     <div class="avatar">A</div>
   </header>
 
@@ -177,7 +221,6 @@
     }
     updateClock();
     setInterval(updateClock, 1000);
-
   </script>
 
 </body>
