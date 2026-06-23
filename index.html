@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    header h1 { font-size: 1.4rem; letter-spacing: 1px; color: #a78bfa; }
+
+    .avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1rem;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 20px 40px;
+    }
+
+    .greeting {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 60px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 40px 60px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 28px 24px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(167, 139, 250, 0.2);
+    }
+
+    .card-icon { font-size: 2rem; margin-bottom: 14px; }
+
+    .card-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 6px;
+    }
+
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .card-delta {
+      font-size: 0.85rem;
+      color: #34d399;
+      margin-top: 6px;
+    }
+
+    .clock {
+      text-align: center;
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.4);
+      padding-bottom: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>My Dashboard</h1>
+    <div class="avatar">A</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="greeting" id="greeting">Hi Ayush 👋</div>
+      <p class="subtitle">Welcome back! Here's your overview for today.</p>
+    </section>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">📈</div>
+        <div class="card-label">Total Revenue</div>
+        <div class="card-value">$84,320</div>
+        <div class="card-delta">+12.5% this month</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">👥</div>
+        <div class="card-label">Active Users</div>
+        <div class="card-value">3,241</div>
+        <div class="card-delta">+8.1% this week</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🛒</div>
+        <div class="card-label">New Orders</div>
+        <div class="card-value">128</div>
+        <div class="card-delta">+3.4% today</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⭐</div>
+        <div class="card-label">Satisfaction</div>
+        <div class="card-value">98%</div>
+        <div class="card-delta">All-time high</div>
+      </div>
+    </div>
+
+    <p class="clock" id="clock"></p>
+  </main>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+        '  •  ' +
+        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    const hour = new Date().getHours();
+    const label = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+    document.getElementById('greeting').textContent = label + ', Ayush 👋';
+  </script>
+
+</body>
+</html>
