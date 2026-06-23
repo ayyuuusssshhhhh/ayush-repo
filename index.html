@@ -103,7 +103,22 @@
       text-align: center;
       font-size: 0.95rem;
       color: rgba(255,255,255,0.4);
-      padding-bottom: 40px;
+      padding-bottom: 24px;
+    }
+
+    .reminder-banner {
+      max-width: 480px;
+      margin: 0 auto 60px;
+      background: linear-gradient(135deg, rgba(167,139,250,0.18), rgba(96,165,250,0.18));
+      border: 1px solid rgba(167,139,250,0.45);
+      border-radius: 14px;
+      padding: 18px 28px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #c4b5fd;
+      letter-spacing: 0.3px;
+      box-shadow: 0 0 24px rgba(167,139,250,0.15);
     }
   </style>
 </head>
@@ -148,6 +163,10 @@
     </div>
 
     <p class="clock" id="clock"></p>
+
+    <div class="reminder-banner">
+      📅 Connect with me tomorrow at 1 PM
+    </div>
   </main>
 
   <script>
