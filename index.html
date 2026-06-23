@@ -131,8 +131,8 @@
 
   <main>
     <section class="hero">
-      <div class="greeting" id="greeting">Hi Ayush 👋</div>
-      <p class="subtitle">Welcome back! Here's your overview for today.</p>
+      <div class="greeting" id="greeting">Hi Pratham 👋</div>
+      <p class="subtitle">Connect with me tomorrow at 1 PM</p>
     </section>
 
     <div class="cards">
@@ -180,9 +180,7 @@
     updateClock();
     setInterval(updateClock, 1000);
 
-    const hour = new Date().getHours();
-    const label = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
-    document.getElementById('greeting').textContent = label + ', Ayush 👋';
+    document.getElementById('greeting').textContent = 'Hi Pratham 👋';
   </script>
 
 </body>
