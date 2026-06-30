@@ -10,7 +10,7 @@ const readline = require('readline');
 
 const SESSION_FILE = path.join(__dirname, 'zoominfo_session.json');
 const CHROMIUM_PATH = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-const CREDS = { username: 'neha.bhargava@shorthills.ai', password: 'Noha@1208' };
+const CREDS = { username: 'ayush.grack@shorthills.ai', password: 'Sales@12345' };
 
 // ─── Contacts to enrich ───────────────────────────────────────────────────────
 // Set via env: PERSON_ID, CONTACT_NAME, COMPANY  OR  edit here
