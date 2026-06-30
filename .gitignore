@@ -1,0 +1,6 @@
+browser-agent/node_modules/
+browser-agent/dist/
+browser-agent/zoominfo_session.json
+enriched_contacts.json
+enriched_contacts.xlsx
+/tmp/pw/

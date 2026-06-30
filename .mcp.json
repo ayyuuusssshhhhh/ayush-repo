@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "browser-agent": {
+      "command": "node",
+      "args": ["browser-agent/dist/index.js"],
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/tmp/pw",
+        "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+      }
+    }
+  }
+}
