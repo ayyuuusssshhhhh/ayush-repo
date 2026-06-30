@@ -1,6 +1,10 @@
 browser-agent/node_modules/
 browser-agent/dist/
+browser-agent/browser-agent/
 browser-agent/zoominfo_session.json
+browser-agent/*.png
+browser-agent/enrichment_result.json
+browser-agent/debug_zi.js
 enriched_contacts.json
 enriched_contacts.xlsx
 /tmp/pw/
