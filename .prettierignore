@@ -1,0 +1,12 @@
+node_modules
+.next
+src/generated
+prisma/migrations
+
+# Vendor-generated reference docs (installed by `prisma init`) — not ours to reformat.
+.agents
+.claude/skills
+.windsurf/skills
+
+# Pre-existing file from an earlier, unrelated project — not ours to reformat.
+legacy

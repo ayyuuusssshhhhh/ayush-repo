@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrgRole {
+  ADMIN // full org visibility + (future) member/billing management
+  MEMBER // full proposal CRUD, same as ADMIN — no feature gating in MVP
+}
+
+enum ProposalStatus {
+  DRAFT // generated but not touched, or actively being edited
+  READY // user marked complete
+  EXPORTED // at least one export produced
+  ARCHIVED // soft-deleted
+}
+
+enum SourceFileType {
+  PDF
+  DOCX
+  TXT
+}
+
+enum ExportFormat {
+  PDF
+  DOCX
+}
+
+enum ProposalSectionKey {
+  EXECUTIVE_SUMMARY
+  PROJECT_UNDERSTANDING
+  PROPOSED_SOLUTION
+  TIMELINE
+  ESTIMATED_COST
+  ASSUMPTIONS
+}
+
+enum AIProvider {
+  ANTHROPIC
+  OPENAI
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  proposals Proposal[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String       @id @default(cuid()) // mirrors the Supabase auth user id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  email     String  @unique
+  fullName  String
+  avatarUrl String?
+  role      OrgRole @default(MEMBER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  proposalsCreated Proposal[]     @relation("ProposalCreatedBy")
+  aiUsageEvents    AIUsageEvent[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Proposal {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("ProposalCreatedBy", fields: [createdById], references: [id])
+
+  title      String
+  clientName String?
+  status     ProposalStatus @default(DRAFT)
+
+  // Denormalized lowercase title + clientName + section excerpts, refreshed on save —
+  // backs a trigram search index without joining sections on every list query.
+  searchText String @default("")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // soft delete backs "Delete"; excluded from all default queries
+
+  sections        ProposalSection[]
+  sourceDocuments SourceDocument[]
+  exports         ProposalExport[]
+
+  @@index([organizationId, deletedAt, updatedAt])
+  @@map("proposals")
+}
+
+model ProposalSection {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  key     ProposalSectionKey
+  order   Int
+  content String             @db.Text // sanitized HTML from the Tiptap editor
+
+  aiGenerated    Boolean @default(true) // false once the user meaningfully edits it
+  generationMeta Json? // provider, model, prompt version, token counts
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([proposalId, key])
+  @@map("proposal_sections")
+}
+
+model SourceDocument {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  fileName      String
+  fileType      SourceFileType
+  storagePath   String // Supabase Storage object path
+  fileSizeBytes Int
+  extractedText String         @db.Text
+  extractionOk  Boolean        @default(true) // false drives the "we couldn't read this file" UI state
+
+  createdAt DateTime @default(now())
+
+  @@map("source_documents")
+}
+
+model ProposalExport {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  format      ExportFormat
+  storagePath String
+  createdAt   DateTime     @default(now())
+
+  @@map("proposal_exports")
+}
+
+model AIUsageEvent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId   String
+  provider         AIProvider
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  costUsdMicros    Int // cost stored as integer micros (1e-6 USD) to avoid float drift
+  createdAt        DateTime   @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("ai_usage_events")
+}
