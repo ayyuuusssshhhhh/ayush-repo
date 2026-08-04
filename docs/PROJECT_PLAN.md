@@ -18,16 +18,16 @@ IT consulting sales cycles are slowed down by proposal writing. A rep or manager
 
 SHAI Proposal Generator is a shared workspace where **anyone in the organization** — sales executives, delivery managers, solution architects, founders — can upload a source document (RFP, SOW, notes) and add their own freeform thoughts/context alongside it, then get a structured, editable proposal draft in minutes, and export it as PDF or Word. There is no gatekeeping on who is allowed to generate: any authenticated member of the org can upload content and generate — confirmed as an explicit product requirement, not just an implementation default.
 
-This is explicitly **not** a sales-only tool. There is no gated "sales role." Every authenticated member of an organization can create, edit, and manage proposals. A manager's dashboard advantage is *visibility across the whole team's output*, not a different feature set — everyone gets the same generator, the same editor, the same export. (See §5 for how roles are modeled without over-engineering permissions in the MVP.)
+This is explicitly **not** a sales-only tool. There is no gated "sales role." Every authenticated member of an organization can create, edit, and manage proposals. A manager's dashboard advantage is _visibility across the whole team's output_, not a different feature set — everyone gets the same generator, the same editor, the same export. (See §5 for how roles are modeled without over-engineering permissions in the MVP.)
 
 ### 1.3 Target users / personas
 
-| Persona | Goal | Notes |
-|---|---|---|
-| Sales Executive | Turn an RFP into a proposal fast, before a competitor does | Primary volume user |
-| Delivery / Engagement Manager | Draft SOWs and technical proposals from meeting notes | Needs accurate "Proposed Solution" & "Timeline" sections |
-| Founder / Principal | Oversee proposal volume and quality across the org | Uses dashboard's org-wide view, still authors proposals personally |
-| (Future) Solutions Architect | Contribute technical detail to a proposal in progress | Out of scope for MVP (no multi-author editing yet) |
+| Persona                       | Goal                                                       | Notes                                                              |
+| ----------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| Sales Executive               | Turn an RFP into a proposal fast, before a competitor does | Primary volume user                                                |
+| Delivery / Engagement Manager | Draft SOWs and technical proposals from meeting notes      | Needs accurate "Proposed Solution" & "Timeline" sections           |
+| Founder / Principal           | Oversee proposal volume and quality across the org         | Uses dashboard's org-wide view, still authors proposals personally |
+| (Future) Solutions Architect  | Contribute technical detail to a proposal in progress      | Out of scope for MVP (no multi-author editing yet)                 |
 
 ### 1.4 Core user story (MVP)
 
@@ -409,6 +409,7 @@ MVP keeps this **in-request but streamed**, not a separate job queue — the gen
 ### 6.5 Loading/empty/error states (non-negotiable per screen)
 
 Every data-bearing screen ships with all three from day one, not retrofitted:
+
 - **Loading** → skeleton matching final layout (never a spinner for page content).
 - **Empty** → illustration/icon + one sentence + a primary action ("Create your first proposal").
 - **Error** → inline, specific, with retry — never a raw stack trace or generic "Something went wrong" with no next step.
@@ -553,9 +554,9 @@ proposalai/
 // src/ai/provider.ts
 interface AIProvider {
   generateProposalSections(input: {
-    extractedText: string
-    userBrief?: string
-  }): AsyncIterable<{ key: ProposalSectionKey; content: string }>
+    extractedText: string;
+    userBrief?: string;
+  }): AsyncIterable<{ key: ProposalSectionKey; content: string }>;
 }
 ```
 
@@ -606,31 +607,31 @@ AIUsageEvent recorded (tokens + cost) for dashboard metering
 
 ## 10. Recommended Libraries
 
-| Concern | Library | Why |
-|---|---|---|
-| Framework | Next.js (App Router) | Already specified; SSR/RSC fits the data-heavy dashboard |
-| Language | TypeScript (strict) | Already specified |
-| Styling | Tailwind CSS | Already specified |
-| Components | shadcn/ui (Radix + Tailwind) | Already specified; owns markup so we can restyle freely |
-| Forms | React Hook Form + Zod | Already specified |
-| Server state | TanStack Query | Caching/optimistic updates for mutations, avoids hand-rolled fetch logic |
-| Client state (minimal) | Zustand | Only for genuinely cross-route UI state |
-| Rich text editor | Tiptap | Structured, serializable, Notion-like editing feel |
-| Animation | Framer Motion | Used sparingly for the interactions that matter |
-| Charts (dashboard) | Recharts or Tremor | Lightweight, composes well with Tailwind/shadcn look |
-| ORM | Prisma | Already specified |
-| DB | PostgreSQL (Supabase) | Already specified |
-| Auth | Supabase Auth | Already specified |
-| Storage | Supabase Storage | Already specified |
-| PDF text extraction | pdf-parse (or unpdf) | Reliable, well-maintained |
-| DOCX text extraction | mammoth | Standard for DOCX → text/HTML |
-| PDF export | @react-pdf/renderer (or Puppeteer for HTML→PDF fidelity) | React-driven templates keep export styling in sync with in-app design |
-| DOCX export | docx (npm package) | Programmatic native .docx generation |
-| AI SDK | @anthropic-ai/sdk | Official Claude SDK behind our own `AIProvider` interface (MVP: Anthropic-only; `openai` added later as a second adapter, no code path depends on it yet) |
-| Rate limiting | @upstash/ratelimit (+ Upstash Redis) | Simple, serverless-friendly |
-| Validation | Zod | Already specified; shared between forms and API routes |
-| Testing | Vitest + React Testing Library, Playwright (e2e) | Standard, fast, good Next.js support |
-| Linting/formatting | ESLint, Prettier | Baseline hygiene |
+| Concern                | Library                                                  | Why                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | Next.js (App Router)                                     | Already specified; SSR/RSC fits the data-heavy dashboard                                                                                                  |
+| Language               | TypeScript (strict)                                      | Already specified                                                                                                                                         |
+| Styling                | Tailwind CSS                                             | Already specified                                                                                                                                         |
+| Components             | shadcn/ui (Radix + Tailwind)                             | Already specified; owns markup so we can restyle freely                                                                                                   |
+| Forms                  | React Hook Form + Zod                                    | Already specified                                                                                                                                         |
+| Server state           | TanStack Query                                           | Caching/optimistic updates for mutations, avoids hand-rolled fetch logic                                                                                  |
+| Client state (minimal) | Zustand                                                  | Only for genuinely cross-route UI state                                                                                                                   |
+| Rich text editor       | Tiptap                                                   | Structured, serializable, Notion-like editing feel                                                                                                        |
+| Animation              | Framer Motion                                            | Used sparingly for the interactions that matter                                                                                                           |
+| Charts (dashboard)     | Recharts or Tremor                                       | Lightweight, composes well with Tailwind/shadcn look                                                                                                      |
+| ORM                    | Prisma                                                   | Already specified                                                                                                                                         |
+| DB                     | PostgreSQL (Supabase)                                    | Already specified                                                                                                                                         |
+| Auth                   | Supabase Auth                                            | Already specified                                                                                                                                         |
+| Storage                | Supabase Storage                                         | Already specified                                                                                                                                         |
+| PDF text extraction    | pdf-parse (or unpdf)                                     | Reliable, well-maintained                                                                                                                                 |
+| DOCX text extraction   | mammoth                                                  | Standard for DOCX → text/HTML                                                                                                                             |
+| PDF export             | @react-pdf/renderer (or Puppeteer for HTML→PDF fidelity) | React-driven templates keep export styling in sync with in-app design                                                                                     |
+| DOCX export            | docx (npm package)                                       | Programmatic native .docx generation                                                                                                                      |
+| AI SDK                 | @anthropic-ai/sdk                                        | Official Claude SDK behind our own `AIProvider` interface (MVP: Anthropic-only; `openai` added later as a second adapter, no code path depends on it yet) |
+| Rate limiting          | @upstash/ratelimit (+ Upstash Redis)                     | Simple, serverless-friendly                                                                                                                               |
+| Validation             | Zod                                                      | Already specified; shared between forms and API routes                                                                                                    |
+| Testing                | Vitest + React Testing Library, Playwright (e2e)         | Standard, fast, good Next.js support                                                                                                                      |
+| Linting/formatting     | ESLint, Prettier                                         | Baseline hygiene                                                                                                                                          |
 
 ---
 
@@ -639,24 +640,31 @@ AIUsageEvent recorded (tokens + cost) for dashboard metering
 Work proceeds phase by phase. **Each phase ends with a summary + explicit request for your approval before starting the next.**
 
 ### Phase 0 — Project scaffolding
+
 Next.js app, TypeScript strict mode, Tailwind + shadcn/ui installed and themed (tokens, not defaults), ESLint/Prettier, Prisma initialized, Supabase project wired (env vars), base folder structure from §8, CI-ready lint/typecheck scripts. No features yet — this is the foundation.
 
 ### Phase 1 — Authentication
+
 Signup, login, forgot/reset password via Supabase Auth; onboarding flow that provisions `Organization` + `User`; profile page; route protection middleware; the authenticated app shell (sidebar/topbar) with empty pages behind it.
 
 ### Phase 2 — Dashboard (with mock/empty data first, then live)
+
 Stat cards (Total Proposals, AI Usage, Storage Used), Recent Proposals card, Quick Actions, full skeleton/empty states — built against the real `/api/dashboard/*` endpoints once Phase 3 exists, stubbed against realistic data shapes until then.
 
 ### Phase 3 — Proposal Management (CRUD, no AI yet)
+
 Proposals list (search, pagination), create a proposal manually with empty sections, edit metadata, delete (soft), duplicate. This proves out the data model and editor shell before layering AI on top.
 
 ### Phase 4 — AI Proposal Generator
+
 Upload flow (signed URL, dropzone, validation), text extraction pipeline, `AIProvider` abstraction with OpenAI + Anthropic adapters, streaming generation into the editor, per-section regenerate, AI usage metering feeding the Phase 2 dashboard stat.
 
 ### Phase 5 — Export
+
 PDF export and DOCX export (native, editable in Word), download flow, `ProposalExport` records, storage cleanup considerations. **Decision:** no custom client branding in MVP — the export template is a clean, generic layout following conventions common across IT consulting/services firm proposals (cover page with title/client/date, numbered sections matching the six generation sections, a simple table for the timeline and cost breakdown, consistent header/footer with page numbers). Custom logo/color/theme upload is explicitly deferred to Phase 2+ (see §1.6).
 
 ### Phase 6 — Polish pass
+
 Cross-cutting design QA against the Linear/Notion/Stripe bar: animation consistency, responsive/mobile pass on every screen, accessibility check (focus states, contrast, keyboard nav), performance pass (dashboard/list query performance, image/font optimization).
 
 ---
