@@ -1,4 +1,4 @@
-# ProposalAI — Project Plan
+# SHAI Proposal Generator — Project Plan
 
 Status: **Draft for approval — no code has been written yet.**
 Owner: Founding CTO / Principal Engineer role (Claude)
@@ -16,7 +16,7 @@ IT consulting sales cycles are slowed down by proposal writing. A rep or manager
 
 ### 1.2 Solution
 
-ProposalAI is a shared workspace where **anyone on the team** — sales executives, delivery managers, solution architects, founders — can drop in a source document (RFP, SOW, notes) and get a structured, editable, on-brand proposal draft in minutes, then export it as PDF or Word.
+SHAI Proposal Generator is a shared workspace where **anyone in the organization** — sales executives, delivery managers, solution architects, founders — can upload a source document (RFP, SOW, notes) and add their own freeform thoughts/context alongside it, then get a structured, editable proposal draft in minutes, and export it as PDF or Word. There is no gatekeeping on who is allowed to generate: any authenticated member of the org can upload content and generate — confirmed as an explicit product requirement, not just an implementation default.
 
 This is explicitly **not** a sales-only tool. There is no gated "sales role." Every authenticated member of an organization can create, edit, and manage proposals. A manager's dashboard advantage is *visibility across the whole team's output*, not a different feature set — everyone gets the same generator, the same editor, the same export. (See §5 for how roles are modeled without over-engineering permissions in the MVP.)
 
@@ -516,8 +516,8 @@ proposalai/
 │  │     └─ server/service.ts
 │  ├─ ai/
 │  │  ├─ provider.ts                    # AIProvider interface
-│  │  ├─ providers/openai.ts
-│  │  ├─ providers/anthropic.ts
+│  │  ├─ providers/anthropic.ts       # implemented for MVP
+│  │  ├─ providers/openai.ts         # not implemented in MVP; future second adapter
 │  │  ├─ prompts/                       # versioned prompt templates per section
 │  │  └─ generateProposal.ts            # orchestration: prompt → provider → structured sections
 │  ├─ lib/
@@ -545,9 +545,9 @@ proposalai/
 
 ## 9. AI Workflow
 
-### 9.1 Design goal: provider-agnostic from day one
+### 9.1 Design goal: provider-agnostic interface, Anthropic-only for MVP
 
-Both OpenAI and Anthropic models must be swappable without touching feature code. We define one interface and two adapters:
+**Decision:** we build and ship with **Anthropic (Claude) only** for the MVP — no OpenAI key/adapter wired up initially. The interface stays provider-agnostic regardless, so adding OpenAI (or any other model provider) later is a new adapter file, not a rearchitecture:
 
 ```ts
 // src/ai/provider.ts
@@ -559,7 +559,7 @@ interface AIProvider {
 }
 ```
 
-`providers/openai.ts` and `providers/anthropic.ts` each implement this against their respective structured-output / tool-use APIs. A single config value (env var or org setting, MVP: env var) selects the active provider; a fallback provider is used automatically on a provider-level failure (timeout, 5xx, rate limit) so generation doesn't hard-fail because one vendor is down.
+`providers/anthropic.ts` implements this against Claude's tool-use API for structured output (see §9.3). `providers/openai.ts` is a documented stub in the folder structure (§8) but not implemented or wired up for MVP — no fallback provider in Phase 4, since there's only one. If Claude's API has an outage, generation surfaces a clear retriable error rather than silently degrading (a second provider for automatic failover is a fast-follow once OpenAI is added).
 
 ### 9.2 Pipeline
 
@@ -626,7 +626,7 @@ AIUsageEvent recorded (tokens + cost) for dashboard metering
 | DOCX text extraction | mammoth | Standard for DOCX → text/HTML |
 | PDF export | @react-pdf/renderer (or Puppeteer for HTML→PDF fidelity) | React-driven templates keep export styling in sync with in-app design |
 | DOCX export | docx (npm package) | Programmatic native .docx generation |
-| AI SDKs | openai, @anthropic-ai/sdk | Official SDKs behind our own `AIProvider` interface |
+| AI SDK | @anthropic-ai/sdk | Official Claude SDK behind our own `AIProvider` interface (MVP: Anthropic-only; `openai` added later as a second adapter, no code path depends on it yet) |
 | Rate limiting | @upstash/ratelimit (+ Upstash Redis) | Simple, serverless-friendly |
 | Validation | Zod | Already specified; shared between forms and API routes |
 | Testing | Vitest + React Testing Library, Playwright (e2e) | Standard, fast, good Next.js support |
@@ -654,20 +654,22 @@ Proposals list (search, pagination), create a proposal manually with empty secti
 Upload flow (signed URL, dropzone, validation), text extraction pipeline, `AIProvider` abstraction with OpenAI + Anthropic adapters, streaming generation into the editor, per-section regenerate, AI usage metering feeding the Phase 2 dashboard stat.
 
 ### Phase 5 — Export
-PDF export (styled, on-brand template) and DOCX export (native, editable in Word), download flow, `ProposalExport` records, storage cleanup considerations.
+PDF export and DOCX export (native, editable in Word), download flow, `ProposalExport` records, storage cleanup considerations. **Decision:** no custom client branding in MVP — the export template is a clean, generic layout following conventions common across IT consulting/services firm proposals (cover page with title/client/date, numbered sections matching the six generation sections, a simple table for the timeline and cost breakdown, consistent header/footer with page numbers). Custom logo/color/theme upload is explicitly deferred to Phase 2+ (see §1.6).
 
 ### Phase 6 — Polish pass
 Cross-cutting design QA against the Linear/Notion/Stripe bar: animation consistency, responsive/mobile pass on every screen, accessibility check (focus states, contrast, keyboard nav), performance pass (dashboard/list query performance, image/font optimization).
 
 ---
 
-## Open questions for you before we start building
+## Decisions log
 
-1. **Org/team model**: does the org-shared-proposals approach in §4.3/§5.1 (everyone in a company sees everyone else's proposals, roles don't gate anything yet) match what you want, or do you want per-proposal privacy from day one?
-2. **AI provider default**: start with OpenAI, Anthropic, or both live behind a toggle from day one?
-3. **Branding**: do you have a name/logo/color direction already, or should Phase 0 include a quick design-direction proposal (palette + type pairing) for you to pick from?
-4. **Export template**: any existing proposal template/branding to match, or should we design a clean original one?
+Resolved on 2026-08-04:
+
+1. **Org/team model** — confirmed: org-shared proposals. Any authenticated member of the organization can upload content and generate proposals; roles don't gate this in the MVP. (§4.3, §5.1)
+2. **AI provider** — Anthropic (Claude) only for the MVP. Interface stays provider-agnostic; OpenAI is a documented future adapter, not implemented now. (§9.1)
+3. **Product name** — **SHAI Proposal Generator**. No further branding/logo/color direction requested yet — Phase 0 will still need a minimal palette + type choice to hit the design bar in §1.8, applied as a neutral, professional look (not tied to a specific client's brand).
+4. **Export template** — not a priority right now; when built (Phase 5), it will be a generic layout following common conventions from IT consulting/services firm proposals, not custom per-client branding. (§7 update in Phase 5)
 
 ---
 
-**Nothing above has been implemented.** Once you approve this plan (and answer the open questions, or tell me to use my best judgment on them), we start Phase 0.
+**Nothing above has been implemented.** With these decisions locked in, we're ready to start **Phase 0 — Project scaffolding** as soon as you give the go-ahead.
