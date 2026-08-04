@@ -680,4 +680,13 @@ Resolved on 2026-08-04:
 
 ---
 
+## Backlog (requested, not yet scheduled)
+
+Added 2026-08-04, after Phase 0 shipped:
+
+1. **Paste text directly, not just file upload** — in the AI Proposal Generator, let a user paste/type their content as a first-class alternative to uploading a PDF/DOCX/TXT, not only as the supplementary freeform brief in §2.3. To build in **Phase 4**.
+2. **Seeded demo data** — populate the Dashboard with realistic sample data (~10 fake users and sample proposals) so it doesn't look empty on first look. To build in **Phase 2**, as a seed script gated to non-production environments.
+
+---
+
 **Nothing above has been implemented.** With these decisions locked in, we're ready to start **Phase 0 — Project scaffolding** as soon as you give the go-ahead.
