@@ -96,16 +96,26 @@ async function findChromium() {
     if (bodyText.includes('email authentication') || bodyText.includes('enter code')) {
       const code = MFA_CODE || (() => { throw new Error('MFA required — set MFA_CODE env var'); })();
       console.log('Entering MFA code:', code);
-      const inputs = await page.$$('input[type="text"],input[type="number"],input[type="tel"]');
-      for (const inp of inputs) { if (await inp.isVisible()) { await inp.fill(code); break; } }
-      await delay(300);
+      // Try each individual digit input first (some MFA forms have 6 separate boxes)
+      const digitInputs = await page.$$('input[maxlength="1"]');
+      if (digitInputs.length >= 6) {
+        for (let i = 0; i < 6; i++) { await digitInputs[i].fill(code[i]); await delay(80); }
+      } else {
+        const inputs = await page.$$('input[type="text"],input[type="number"],input[type="tel"],input[type="password"],input:not([type])');
+        for (const inp of inputs) { if (await inp.isVisible()) { await inp.fill(code); break; } }
+      }
+      await delay(500);
+      await page.screenshot({ path: './mfa_debug.png' });
+      console.log('  Saved MFA screenshot');
       const clicked2 = await page.evaluate(() => {
-        const b = Array.from(document.querySelectorAll('button')).find(b => /verify|submit|confirm/i.test(b.innerText));
-        if (b) { b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return true; }
-        return false;
+        const b = Array.from(document.querySelectorAll('button,input[type="submit"]'))
+          .find(b => /verify|submit|confirm|continue|next/i.test(b.textContent || b.value || ''));
+        if (b) { b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return b.textContent || b.value; }
+        return null;
       });
+      console.log('  Verify button clicked:', clicked2);
       if (!clicked2) await page.keyboard.press('Enter');
-      await delay(5000);
+      await delay(6000);
     }
 
     const cookies = await ctx.cookies();
