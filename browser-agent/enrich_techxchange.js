@@ -94,6 +94,18 @@ async function findChromium() {
     // Email MFA
     const bodyText = (await page.innerText('body').catch(() => '')).toLowerCase();
     if (bodyText.includes('email authentication') || bodyText.includes('enter code')) {
+      // Dismiss cookie banner first (it blocks the Verify button)
+      try {
+        const cookieBtn = await page.$('button#onetrust-accept-btn-handler, button[aria-label*="Allow All"], button:has-text("Allow All Cookies")');
+        if (cookieBtn && await cookieBtn.isVisible().catch(() => false)) { await cookieBtn.click(); await delay(800); }
+      } catch {}
+      // Also try by text
+      await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button')).find(b => /allow all cookies/i.test(b.textContent || ''));
+        if (b) b.click();
+      }).catch(() => {});
+      await delay(500);
+
       const code = MFA_CODE || (() => { throw new Error('MFA required — set MFA_CODE env var'); })();
       console.log('Entering MFA code:', code);
       // Try each individual digit input first (some MFA forms have 6 separate boxes)
@@ -104,17 +116,25 @@ async function findChromium() {
         const inputs = await page.$$('input[type="text"],input[type="number"],input[type="tel"],input[type="password"],input:not([type])');
         for (const inp of inputs) { if (await inp.isVisible()) { await inp.fill(code); break; } }
       }
-      await delay(500);
+      await delay(800);
       await page.screenshot({ path: './mfa_debug.png' });
       console.log('  Saved MFA screenshot');
-      const clicked2 = await page.evaluate(() => {
-        const b = Array.from(document.querySelectorAll('button,input[type="submit"]'))
-          .find(b => /verify|submit|confirm|continue|next/i.test(b.textContent || b.value || ''));
-        if (b) { b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return b.textContent || b.value; }
-        return null;
-      });
-      console.log('  Verify button clicked:', clicked2);
-      if (!clicked2) await page.keyboard.press('Enter');
+      // Try Playwright click first (works when button is enabled), then dispatchEvent fallback
+      let clicked2 = false;
+      try {
+        await page.click('button:has-text("Verify")', { timeout: 3000 });
+        clicked2 = true; console.log('  Verify clicked via page.click()');
+      } catch {
+        const res = await page.evaluate(() => {
+          const b = Array.from(document.querySelectorAll('button,input[type="submit"]'))
+            .find(b => /verify|submit|confirm|continue|next/i.test(b.textContent || b.value || ''));
+          if (b) { b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return b.textContent || b.value; }
+          return null;
+        });
+        console.log('  Verify dispatchEvent:', res);
+        if (!res) { await page.keyboard.press('Enter'); console.log('  Pressed Enter'); }
+        clicked2 = !!res;
+      }
       await delay(6000);
     }
 
