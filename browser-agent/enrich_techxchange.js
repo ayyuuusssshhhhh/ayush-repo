@@ -91,49 +91,68 @@ async function findChromium() {
     if (!clicked) { await page.focus('#pwInput'); await page.keyboard.press('Enter'); }
     await delay(4000);
 
-    // Email MFA
+    // Email MFA — wait for MFA page to appear
+    await delay(2000);
     const bodyText = (await page.innerText('body').catch(() => '')).toLowerCase();
-    if (bodyText.includes('email authentication') || bodyText.includes('enter code')) {
-      // Dismiss cookie banner first (it blocks the Verify button)
-      try {
-        const cookieBtn = await page.$('button#onetrust-accept-btn-handler, button[aria-label*="Allow All"], button:has-text("Allow All Cookies")');
-        if (cookieBtn && await cookieBtn.isVisible().catch(() => false)) { await cookieBtn.click(); await delay(800); }
-      } catch {}
-      // Also try by text
-      await page.evaluate(() => {
-        const b = Array.from(document.querySelectorAll('button')).find(b => /allow all cookies/i.test(b.textContent || ''));
-        if (b) b.click();
-      }).catch(() => {});
-      await delay(500);
-
+    console.log('  Page after login:', page.url());
+    if (bodyText.includes('email authentication') || bodyText.includes('check your email')) {
       const code = MFA_CODE || (() => { throw new Error('MFA required — set MFA_CODE env var'); })();
       console.log('Entering MFA code:', code);
-      // Try each individual digit input first (some MFA forms have 6 separate boxes)
-      const digitInputs = await page.$$('input[maxlength="1"]');
-      if (digitInputs.length >= 6) {
-        for (let i = 0; i < 6; i++) { await digitInputs[i].fill(code[i]); await delay(80); }
+
+      // Target the code input specifically (not username/password inputs)
+      const codeInput = await page.$('input[name="code"], input[id*="code"], input[placeholder*="code" i], input[aria-label*="code" i]');
+      if (codeInput && await codeInput.isVisible().catch(() => false)) {
+        await codeInput.triple_click().catch(() => {});
+        await codeInput.fill(code);
       } else {
-        const inputs = await page.$$('input[type="text"],input[type="number"],input[type="tel"],input[type="password"],input:not([type])');
-        for (const inp of inputs) { if (await inp.isVisible()) { await inp.fill(code); break; } }
+        // Fallback: find first visible non-hidden single input on page
+        const allInputs = await page.$$('input:not([type="hidden"]):not([type="checkbox"])');
+        for (const inp of allInputs) {
+          if (await inp.isVisible().catch(() => false)) {
+            const name = await inp.getAttribute('name').catch(() => '');
+            const type = await inp.getAttribute('type').catch(() => '');
+            if (!['username','email','password'].includes(name) && type !== 'password') {
+              await inp.fill(code); break;
+            }
+          }
+        }
       }
-      await delay(800);
+
+      // Trigger input/change events so Verify button enables
+      await page.evaluate(() => {
+        document.querySelectorAll('input').forEach(inp => {
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          inp.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      });
+      await delay(1000);
       await page.screenshot({ path: './mfa_debug.png' });
       console.log('  Saved MFA screenshot');
-      // Try Playwright click first (works when button is enabled), then dispatchEvent fallback
-      let clicked2 = false;
+
+      // Click Verify — try enabled button first, then force-dispatch
+      let verified = false;
       try {
-        await page.click('button:has-text("Verify")', { timeout: 3000 });
-        clicked2 = true; console.log('  Verify clicked via page.click()');
-      } catch {
-        const res = await page.evaluate(() => {
-          const b = Array.from(document.querySelectorAll('button,input[type="submit"]'))
-            .find(b => /verify|submit|confirm|continue|next/i.test(b.textContent || b.value || ''));
-          if (b) { b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return b.textContent || b.value; }
-          return null;
+        await page.waitForSelector('button:not([disabled])', { timeout: 3000 });
+        const verifyBtn = await page.$('button');
+        const btns = await page.$$('button');
+        for (const b of btns) {
+          const t = (await b.innerText().catch(() => '')).trim();
+          const disabled = await b.getAttribute('disabled').catch(() => 'x');
+          if (/verify/i.test(t) && disabled === null) {
+            await b.click(); verified = true;
+            console.log('  Clicked enabled Verify button');
+            break;
+          }
+        }
+      } catch {}
+
+      if (!verified) {
+        await page.evaluate(() => {
+          const b = Array.from(document.querySelectorAll('button'))
+            .find(b => /verify/i.test(b.textContent || ''));
+          if (b) b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
         });
-        console.log('  Verify dispatchEvent:', res);
-        if (!res) { await page.keyboard.press('Enter'); console.log('  Pressed Enter'); }
-        clicked2 = !!res;
+        console.log('  Force-dispatched Verify click');
       }
       await delay(6000);
     }
