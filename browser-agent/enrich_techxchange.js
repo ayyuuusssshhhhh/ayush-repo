@@ -12,11 +12,22 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 const CREDS = { username: 'ayush.grack@shorthills.ai', password: 'Sales@12345' };
 const MFA_CODE = process.env.MFA_CODE || '';
 
-const CONTACTS = [
-  { personId: '5327067162', name: 'Bill Higgins',    company: 'IBM',    title: 'VP, AI Developer Relations' },
-  { personId: '8076338586', name: 'Khwaja Shaik',    company: 'IBM',    title: 'Chief Technology Officer' },
-  { personId: '2383768444', name: 'Nicole Forsgren', company: 'Google', title: 'Sr Director, Developer Intelligence' },
+// IBM TechXchange 2026 speakers
+const CONTACTS_2026 = [
+  { personId: '5327067162', name: 'Bill Higgins',        company: 'IBM',       title: 'VP, AI Developer Relations',          year: 2026 },
+  { personId: '2356042243', name: 'Jeff Crume',          company: 'IBM',       title: 'Distinguished Engineer, AI Security', year: 2026 },
+  { personId: '8827778930', name: 'Rodney Mullen',       company: 'Reality Crisis', title: 'Co-Founder / Keynote Speaker',   year: 2026 },
 ];
+
+// IBM TechXchange 2025 speakers (prior year)
+const CONTACTS_2025 = [
+  { personId: '8076338586', name: 'Khwaja Shaik',    company: 'IBM',       title: 'Chief Technology Officer',               year: 2025 },
+  { personId: '2383768444', name: 'Nicole Forsgren', company: 'Google',    title: 'Sr Director, Developer Intelligence',    year: 2025 },
+  { personId: '4004021146', name: 'Dario Amodei',    company: 'Anthropic', title: 'Co-Founder & CEO',                      year: 2025 },
+  { personId: '1463516663', name: 'Satya Sharma',    company: 'IBM',       title: 'IBM Fellow',                            year: 2025 },
+];
+
+const CONTACTS = [...CONTACTS_2026, ...CONTACTS_2025];
 
 function loadCookies() {
   try { if (fs.existsSync(SESSION_FILE)) return JSON.parse(fs.readFileSync(SESSION_FILE,'utf8')); } catch {}
@@ -102,7 +113,18 @@ async function findChromium() {
     console.log('Post-login URL:', page.url());
     if (page.url().includes('login')) { console.error('Login failed'); await browser.close(); process.exit(1); }
   } else {
-    console.log('Already logged in.');
+    // Verify session is actually valid (not just URL-based)
+    const bodyText = (await page.innerText('body').catch(() => '')).toLowerCase();
+    if (bodyText.includes('session has expired') || bodyText.includes('please login') || bodyText.includes('sign up')) {
+      console.log('Session expired — forcing fresh login');
+      fs.unlinkSync(SESSION_FILE);
+      await page.goto('https://app.zoominfo.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await delay(2000);
+      // Falls through to login block on next run — exit and re-run with MFA_CODE
+      console.error('Session expired. Delete zoominfo_session.json and re-run with MFA_CODE=<code>');
+      await browser.close(); process.exit(1);
+    }
+    console.log('Already logged in (session valid).');
     const c = await ctx.cookies(); fs.writeFileSync(SESSION_FILE, JSON.stringify(c, null, 2));
   }
 
@@ -179,6 +201,7 @@ async function findChromium() {
   }
 
   fs.writeFileSync('./techxchange_contacts.json', JSON.stringify(results, null, 2));
-  console.log('\n✓ Saved to browser-agent/techxchange_contacts.json');
+  const found = results.filter(r => r.email || r.directPhone || r.mobilePhone).length;
+  console.log(`\n✓ Saved to browser-agent/techxchange_contacts.json (${found}/${results.length} with contact data)`);
   await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });
