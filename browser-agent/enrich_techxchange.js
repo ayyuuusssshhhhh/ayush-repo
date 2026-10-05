@@ -1,0 +1,184 @@
+/**
+ * IBM TechXchange 2026 speaker enrichment via ZoomInfo UI (view credits).
+ */
+const { chromium } = require('playwright');
+const fs = require('fs');
+const CHROMIUM_PATH = process.env.CHROMIUM_PATH
+  || '/tmp/pw/chromium_headless_shell-1228/chrome-linux64/chrome'  // session-start hook installs here
+  || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';          // pre-installed fallback
+const SESSION_FILE = './zoominfo_session.json';
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+const CREDS = { username: 'ayush.grack@shorthills.ai', password: 'Sales@12345' };
+const MFA_CODE = process.env.MFA_CODE || '';
+
+const CONTACTS = [
+  { personId: '5327067162', name: 'Bill Higgins',    company: 'IBM',    title: 'VP, AI Developer Relations' },
+  { personId: '8076338586', name: 'Khwaja Shaik',    company: 'IBM',    title: 'Chief Technology Officer' },
+  { personId: '2383768444', name: 'Nicole Forsgren', company: 'Google', title: 'Sr Director, Developer Intelligence' },
+];
+
+function loadCookies() {
+  try { if (fs.existsSync(SESSION_FILE)) return JSON.parse(fs.readFileSync(SESSION_FILE,'utf8')); } catch {}
+  return [];
+}
+
+async function findChromium() {
+  const candidates = [
+    '/tmp/pw/chromium_headless_shell-1228/chrome-linux64/chrome',
+    '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ];
+  for (const p of candidates) if (fs.existsSync(p)) return p;
+  return undefined; // let Playwright use its default
+}
+
+(async () => {
+  const execPath = await findChromium();
+  console.log('Using Chromium:', execPath || 'Playwright default');
+
+  const browser = await chromium.launch({
+    ...(execPath ? { executablePath: execPath } : {}),
+    headless: true,
+    args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage',
+      '--no-proxy-server','--ignore-certificate-errors','--window-size=1920,1080'],
+  });
+  const ctx = await browser.newContext({
+    viewport: { width: 1920, height: 1080 },
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  });
+  await ctx.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    window.chrome = { runtime: {} };
+  });
+
+  const saved = loadCookies();
+  if (saved.length) { await ctx.addCookies(saved); console.log(`Loaded ${saved.length} cookies`); }
+
+  const page = await ctx.newPage();
+  await page.goto('https://app.zoominfo.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await delay(3000);
+  console.log('URL:', page.url());
+
+  // ── Login if needed ────────────────────────────────────────────────────────
+  if (page.url().includes('login') || page.url().includes('signin')) {
+    console.log('Logging in as', CREDS.username);
+    try { const cb = await page.$('button#onetrust-accept-btn-handler'); if (cb) { await cb.click(); await delay(800); } } catch {}
+
+    await page.waitForSelector('#usernameInput', { state: 'visible', timeout: 15000 });
+    await page.fill('#usernameInput', CREDS.username);
+    await page.fill('#pwInput', CREDS.password);
+    await delay(300);
+
+    const btns = await page.$$('button');
+    let clicked = false;
+    for (const b of btns) {
+      const t = (await b.innerText().catch(() => '')).trim().toLowerCase();
+      if (await b.isVisible().catch(() => false) && (t === 'log in' || t === 'sign in')) {
+        await b.click(); clicked = true; break;
+      }
+    }
+    if (!clicked) { await page.focus('#pwInput'); await page.keyboard.press('Enter'); }
+    await delay(4000);
+
+    // Email MFA
+    const bodyText = (await page.innerText('body').catch(() => '')).toLowerCase();
+    if (bodyText.includes('email authentication') || bodyText.includes('enter code')) {
+      const code = MFA_CODE || (() => { throw new Error('MFA required — set MFA_CODE env var'); })();
+      console.log('Entering MFA code:', code);
+      const inputs = await page.$$('input[type="text"],input[type="number"],input[type="tel"]');
+      for (const inp of inputs) { if (await inp.isVisible()) { await inp.fill(code); break; } }
+      await delay(300);
+      const clicked2 = await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button')).find(b => /verify|submit|confirm/i.test(b.innerText));
+        if (b) { b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); return true; }
+        return false;
+      });
+      if (!clicked2) await page.keyboard.press('Enter');
+      await delay(5000);
+    }
+
+    const cookies = await ctx.cookies();
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(cookies, null, 2));
+    console.log('Post-login URL:', page.url());
+    if (page.url().includes('login')) { console.error('Login failed'); await browser.close(); process.exit(1); }
+  } else {
+    console.log('Already logged in.');
+    const c = await ctx.cookies(); fs.writeFileSync(SESSION_FILE, JSON.stringify(c, null, 2));
+  }
+
+  // ── Enrich each contact ────────────────────────────────────────────────────
+  const results = [];
+  for (const contact of CONTACTS) {
+    console.log(`\nEnriching: ${contact.name} (${contact.personId})`);
+    const url = `https://app.zoominfo.com/#/apps/profile/person/${contact.personId}/contact-profile`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await delay(6000);
+
+    // Click View/Reveal buttons
+    for (let pass = 0; pass < 5; pass++) {
+      let clicked = 0;
+      const btns = await page.$$('button,[role="button"]');
+      for (const b of btns) {
+        const t = (await b.innerText().catch(() => '')).trim().toLowerCase();
+        if (await b.isVisible().catch(() => false) && (t === 'view' || t === 'reveal' || t.startsWith('view ') || t.includes('show'))) {
+          console.log(`  Clicking: "${t}"`);
+          await b.click().catch(() => {});
+          clicked++; await delay(2000);
+        }
+      }
+      if (clicked === 0) break;
+    }
+    await delay(1000);
+
+    const data = await page.evaluate(() => {
+      const emails = new Set(), phones = [], seenP = new Set();
+      document.querySelectorAll('a[href^="mailto:"]').forEach(a =>
+        emails.add(a.href.replace('mailto:','').split('?')[0].trim()));
+      document.querySelectorAll('*').forEach(el => {
+        if (el.children.length > 0) return;
+        (el.innerText||'').match(/[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}/g)?.forEach(e => emails.add(e));
+      });
+      document.querySelectorAll('a[href^="tel:"]').forEach(a => {
+        const d = a.href.replace(/\D/g,'');
+        if (d.length >= 10 && !seenP.has(d)) {
+          seenP.add(d);
+          const par = a.closest('li,tr,[class*="row"],[class*="item"],div');
+          const lbl = par ? ([...par.querySelectorAll('span,label,[class*="label"]')].map(el=>el.innerText).find(t=>t&&t.length<30)||'') : '';
+          phones.push({ label: lbl.toLowerCase().trim(), value: a.innerText.trim()||a.href.replace('tel:','') });
+        }
+      });
+      document.querySelectorAll('span,div,p').forEach(el => {
+        (el.innerText||'').match(/(\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/g)?.forEach(ph => {
+          const d = ph.replace(/\D/g,'');
+          if (d.length >= 10 && !seenP.has(d)) { seenP.add(d); phones.push({ label:'unknown', value: ph.trim() }); }
+        });
+      });
+      return {
+        emails: [...emails].filter(e => !e.includes('zoominfo.com') && !e.includes('example.com') && e.includes('@')),
+        phones
+      };
+    });
+
+    let direct = null, mobile = null;
+    for (const { label, value } of data.phones) {
+      if (label.includes('mobile')||label.includes('cell')) mobile = mobile||value;
+      else if (label.includes('direct')||label.includes('office')||label.includes('work')) direct = direct||value;
+      else if (!direct) direct = value; else if (!mobile) mobile = value;
+    }
+
+    const out = { ...contact, email: data.emails[0]||null, directPhone: direct, mobilePhone: mobile };
+    results.push(out);
+
+    console.log('══════════════════════════════════════');
+    console.log(`  ${out.name} @ ${out.company}`);
+    console.log(`  Title:         ${out.title}`);
+    console.log(`  Email:         ${out.email||'—'}`);
+    console.log(`  Direct Phone:  ${out.directPhone||'—'}`);
+    console.log(`  Mobile Phone:  ${out.mobilePhone||'—'}`);
+    console.log('══════════════════════════════════════');
+  }
+
+  fs.writeFileSync('./techxchange_contacts.json', JSON.stringify(results, null, 2));
+  console.log('\n✓ Saved to browser-agent/techxchange_contacts.json');
+  await browser.close();
+})().catch(e => { console.error(e); process.exit(1); });

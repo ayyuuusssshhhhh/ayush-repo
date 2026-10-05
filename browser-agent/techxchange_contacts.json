@@ -1,0 +1,29 @@
+[
+  {
+    "personId": "5327067162",
+    "name": "Bill Higgins",
+    "company": "IBM",
+    "title": "VP, AI Developer Relations",
+    "email": null,
+    "directPhone": null,
+    "mobilePhone": null
+  },
+  {
+    "personId": "8076338586",
+    "name": "Khwaja Shaik",
+    "company": "IBM",
+    "title": "Chief Technology Officer",
+    "email": null,
+    "directPhone": null,
+    "mobilePhone": null
+  },
+  {
+    "personId": "2383768444",
+    "name": "Nicole Forsgren",
+    "company": "Google",
+    "title": "Sr Director, Developer Intelligence",
+    "email": null,
+    "directPhone": null,
+    "mobilePhone": null
+  }
+]
